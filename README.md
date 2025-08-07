@@ -2,70 +2,92 @@
 
 This is a skeleton Rails application created for a developer interview design problem. It demonstrates a simple vendor-project assignment system with three core models.
 
-This app models a simple integration between two systems, known as "Local"
-and "Remote".
+This app models a simple integration between two systems, known as "A"
+and "B".
 
-The "Local" system exposes a REST API with 3 operations:
+The "A" system exposes a REST API with 3 operations:
+
 * sync a vendor
+```
+POST /vendors
+{
+  "id": "Vendor ID",
+  "name": "Vendor name"
+}
+```
+The "id" attribute is optional; if missing a new vendor is created. Otherwise,
+the existing vendor with the given ID is updated.
+The response payload contains the vendor ID:
+```
+{
+  "id": "Vendor ID"
+}
+```
+
 * sync a project
+```
+POST /projects
+{
+  "id": "Project ID",
+  "name": "Project name"
+}
+```
+This works exactly like the /vendors endpoint
+
+
 * add a vendor to a project
+```
+POST /vendors/:id/assign-to-project
+{
+  "project_id": "Project ID"
+}
+```
 
-The "Remote" system exposes a REST API with 3 operations:
+The "B" system exposes a REST API with 3 operations:
+
 * list vendors
+```
+GET /vendors?page=N
+{
+  "data": [
+    {
+      "id": "Vendor ID",
+      "name": "Vendor name"
+    }
+  ]
+}
+```
+
 * list projects
-* list the assignments for a project
-
-The integration needs to keep "Local" in sync with "Remote":
-
-* update a vendor if the data has changed
-* update a project if the data has changed
-* add a vendor to a project if a new assignment is created
-
-## Models
-
-### Vendor
-- **Attributes:** name, local_id, remote_id
-- **Relationships:** has many assignments, has many projects through assignments
-
-### Project
-- **Attributes:** name, local_id, remote_id
-- **Relationships:** has many assignments, has many vendors through assignments
-
-### Assignment
-- **Attributes:** vendor_id, project_id
-- **Relationships:** belongs to vendor, belongs to project
-
-## Database Schema
-
 ```
-vendors
-- id (primary key)
-- local_id (string)
-- remote_id (string, not null)
-- name (string, not null)
-- created_at, updated_at
-
-projects
-- id (primary key)
-- local_id (string)
-- remote_id (string, not null)
-- name (string, not null)
-- created_at, updated_at
-
-assignments
-- id (primary key)
-- vendor_id (foreign key to vendors)
-- project_id (foreign key to projects)
-- created_at, updated_at
+GET /projects?page=N
+{
+  "data": [
+    {
+      "id": "Project ID",
+      "name": "Project name"
+    }
+  ]
+}
 ```
 
-## Design Discussion Points
+* list the commitments for a project
+```
+GET /projects/:id/commitments
+{
+  "data": [
+    {
+      "project_id": "Project ID",
+      "vendor_id": "Vendor ID"
+    }
+  ]
+}
+```
 
-This skeleton provides a foundation for discussing various design patterns and improvements:
 
-- **Validations:** How to ensure data integrity
-- **Associations:** Many-to-many relationships through join tables
-- **Scopes:** Query optimization and reusability
-- **Indexing:** Database performance considerations
-- **Business Logic:** Where to place domain-specific methods
-- **Extensibility:** How to add new features (e.g., assignment dates, vendor ratings)
+The integration needs to keep "A" in sync with "B", by polling periodically
+"B" and invoking the necessary operations on "A".
+
+* "A" and "B" can _only_ be accessed via their respective APIs.
+* Unnecessary operations must be avoided (e.g. do not perform operations on A if
+the data in B has not changed)
